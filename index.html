@@ -238,7 +238,8 @@ footer{margin-top:auto;padding-top:var(--sp-5);display:flex;justify-content:cent
 
 <script>
 /* Where sign-ups go: set to a Formspree / Tally / Supabase endpoint that accepts JSON POST. Empty = not sent. */
-var FORM_ENDPOINT = "https://formsubmit.co/ajax/cryptoclubvienna@gmail.com";
+/* Google Apps Script web app URL (ends with /exec). Sign-ups go to the Google Sheet + cryptoclubvienna@gmail.com */
+var FORM_ENDPOINT = "https://script.google.com/macros/s/AKfycbyvtW1pSaOqzStfJ8dPNEddlSkZeu6lLquodPLGxxqK-E-lsPxgLL6Af9Gs10yYtpOC/exec";
 
 (function(){
 var reduce = matchMedia("(prefers-reduced-motion:reduce)").matches;
@@ -345,9 +346,10 @@ form.addEventListener("submit",function(e){
   e.preventDefault(); var d=data(), btn=$("#submit"); if(btn.disabled) return;
   btn.disabled=true; btn.setAttribute("data-busy",""); $("#submitTxt").textContent="Confirming"; $("#err").textContent="";
   d.at=new Date().toISOString(); d.source="links";
-  var send = FORM_ENDPOINT
-    ? fetch(FORM_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({"_subject":"New CCV member: "+d.name,"_template":"table","_captcha":"false","_replyto":d.email,"Name":d.name,"Email":d.email,"University":d.university,"Where they are":d.level,"Interested in":d.interests.join(", ")||"—","Consent to emails":d.consent?"Yes":"No","Submitted at":d.at,"Source":d.source})}).then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(j){ if(j && String(j.success)==="false") throw 0; })
-    : new Promise(function(res){ console.warn("[ccv] FORM_ENDPOINT not set: sign-up not sent", d); setTimeout(res,700); });
+  var send = !FORM_ENDPOINT ? Promise.reject("Sign-up form is not connected yet.")
+    : fetch(FORM_ENDPOINT,{method:"POST",body:JSON.stringify(d)})
+      .then(function(r){ return r.json(); })
+      .then(function(j){ if(!j || !j.ok) throw (j && j.error) || 0; });
   var hash = (window.crypto&&crypto.subtle) ? crypto.subtle.digest("SHA-256",new TextEncoder().encode(d.email+d.at)).then(hex) : Promise.resolve(Math.random().toString(16).slice(2).padEnd(64,"0"));
   Promise.all([send,hash]).then(function(v){
     var h=v[1];
@@ -359,9 +361,9 @@ form.addEventListener("submit",function(e){
     try{ localStorage.removeItem(KEY); }catch(e){}
     if(reduce){ el.textContent=full; return; }
     (function type(){ el.textContent=full.slice(0,i)+(i<full.length?"▌":""); if(i++<full.length) setTimeout(type,14); })();
-  }).catch(function(){
+  }).catch(function(msg){
     btn.removeAttribute("data-busy"); btn.disabled=false; $("#submitTxt").textContent="Try again";
-    $("#err").textContent="Couldn't send. Check your connection and try again.";
+    $("#err").textContent = (typeof msg==="string" && msg) ? msg : "Couldn't send. Check your connection and try again.";
   });
 });
 
