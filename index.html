@@ -198,7 +198,7 @@ footer{margin-top:auto;padding-top:var(--sp-5);display:flex;justify-content:cent
             <label class="chip"><input type="checkbox" name="interests" value="regulation"><span>Regulation</span></label>
             <label class="chip"><input type="checkbox" name="interests" value="events"><span>Events</span></label>
           </div></div>
-        <div class="f"><span class="legend" id="cvL">CV <em>· optional</em></span>
+        <div class="f"><span class="legend" id="cvL">CV <em>· required</em></span>
           <label class="cv" id="cvBox" aria-labelledby="cvL">
             <input type="file" id="cv" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
             <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M12 17v-6M9.5 13.5 12 11l2.5 2.5"/></svg></span>
@@ -347,7 +347,7 @@ function data(){
   return {name:(fd.get("name")||"").trim(),email:(fd.get("email")||"").trim(),university:fd.get("university")||"",level:fd.get("level")||"",interests:fd.getAll("interests"),consent:!!fd.get("consent")};
 }
 function update(){
-  var d=data(), ok=[d.name.length>1, emailRe.test(d.email), !!d.university, !!d.level, d.consent];
+  var d=data(), ok=[d.name.length>1, emailRe.test(d.email), !!d.university, !!d.level, !!cvFile, d.consent];
   var n=ok.filter(Boolean).length;
   $("#meter").style.width=(n/ok.length*100)+"%";
   $("#submit").disabled = n<ok.length;
@@ -365,13 +365,13 @@ update();
 
 /* CV upload (optional): PDF / Word, max 5 MB, sent as base64 */
 var CV_MAX=5*1024*1024, cvFile=null;
-function cvReset(){ cvFile=null; $("#cv").value=""; $("#cvBox").removeAttribute("data-has"); $("#cvName").textContent="Upload your CV"; $("#cvInfo").textContent="PDF or Word · max 5 MB"; }
+function cvReset(){ cvFile=null; try{update();}catch(e){} $("#cv").value=""; $("#cvBox").removeAttribute("data-has"); $("#cvName").textContent="Upload your CV"; $("#cvInfo").textContent="PDF or Word · max 5 MB"; }
 $("#cv").addEventListener("change",function(){
   var f=this.files&&this.files[0]; $("#err").textContent="";
   if(!f){ cvReset(); return; }
   if(!/\.(pdf|docx?)$/i.test(f.name)){ cvReset(); $("#err").textContent="CV must be a PDF or Word file."; return; }
   if(f.size>CV_MAX){ cvReset(); $("#err").textContent="CV is too large. Max 5 MB."; return; }
-  cvFile=f; $("#cvBox").setAttribute("data-has",""); $("#cvName").textContent=f.name;
+  cvFile=f; update(); $("#cvBox").setAttribute("data-has",""); $("#cvName").textContent=f.name;
   $("#cvInfo").textContent=(f.size<102400?Math.max(1,Math.round(f.size/1024))+" KB":(f.size/1048576).toFixed(1)+" MB")+" · tap to change";
 });
 $("#cvX").addEventListener("click",function(e){ e.preventDefault(); e.stopPropagation(); cvReset(); });
