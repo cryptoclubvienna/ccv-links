@@ -100,6 +100,20 @@ form{padding:0 16px 16px;display:grid;gap:14px}
 .chip span{display:inline-flex;align-items:center;height:36px;padding:0 14px;border-radius:999px;border:1px solid var(--c-line-2);font-size:.88rem;cursor:pointer;user-select:none;transition:all var(--dur) var(--ease)}
 .chip input:checked+span{background:var(--c-ink);color:var(--c-accent-ink);border-color:var(--c-ink)}
 .chip input:focus-visible+span{box-shadow:0 0 0 2px var(--c-accent)}
+.f>label.cv{font:inherit;letter-spacing:normal;text-transform:none;color:var(--c-ink)}
+.cv{position:relative;display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 14px;border-radius:var(--r-control);background:rgba(0,0,0,.35);border:1px dashed var(--c-line-2);cursor:pointer;transition:border-color var(--dur) var(--ease),background var(--dur) var(--ease)}
+.cv:hover,.cv:focus-within{border-color:var(--c-accent)}
+.cv input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+.cv .ic{flex:none;width:34px;height:34px;border-radius:9px;display:grid;place-items:center;background:var(--c-fill);border:1px solid var(--c-line);color:var(--c-ink-2)}
+.cv .ic svg{width:18px;height:18px}
+.cv .t{min-width:0;flex:1}
+.cv .t b{display:block;font-weight:600;font-size:.92rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cv .t small{display:block;font:400 .7rem/1.4 var(--f-mono);color:var(--c-ink-2);margin-top:2px}
+.cv[data-has]{border-style:solid;border-color:rgba(157,107,255,.55);background:rgba(157,107,255,.08)}
+.cv[data-has] .ic{color:#C7B4F4}
+.cv-x{flex:none;display:none;width:30px;height:30px;border-radius:50%;border:1px solid var(--c-line-2);background:none;color:var(--c-ink-2);cursor:pointer;font-size:16px;line-height:1}
+.cv[data-has] .cv-x{display:grid;place-items:center}
+.legend em{font-style:normal;text-transform:none;letter-spacing:0;color:var(--c-ink-3)}
 .consent{display:flex;gap:10px;align-items:flex-start;font-size:.82rem;color:var(--c-ink-2);cursor:pointer}
 .consent input{margin:2px 0 0;accent-color:var(--c-accent);width:16px;height:16px;flex:none}
 .submit{height:52px;border:0;border-radius:var(--r-control);background:var(--c-accent);color:var(--c-accent-ink);font-weight:700;font-stretch:115%;letter-spacing:.01em;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:filter var(--dur) var(--ease),opacity var(--dur) var(--ease)}
@@ -184,6 +198,13 @@ footer{margin-top:auto;padding-top:var(--sp-5);display:flex;justify-content:cent
             <label class="chip"><input type="checkbox" name="interests" value="regulation"><span>Regulation</span></label>
             <label class="chip"><input type="checkbox" name="interests" value="events"><span>Events</span></label>
           </div></div>
+        <div class="f"><span class="legend" id="cvL">CV <em>· optional</em></span>
+          <label class="cv" id="cvBox" aria-labelledby="cvL">
+            <input type="file" id="cv" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+            <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M12 17v-6M9.5 13.5 12 11l2.5 2.5"/></svg></span>
+            <span class="t"><b id="cvName">Upload your CV</b><small id="cvInfo">PDF or Word · max 5 MB</small></span>
+            <button type="button" class="cv-x" id="cvX" aria-label="Remove file">&times;</button>
+          </label></div>
         <label class="consent"><input type="checkbox" name="consent" id="consent" required><span>The club may email me about meetups. I can unsubscribe anytime.</span></label>
         <button class="submit" type="submit" id="submit" data-magnetic="0.08" disabled><span class="spin" aria-hidden="true"></span><span id="submitTxt">Join the club</span></button>
         <div class="err" id="err" role="alert"></div>
@@ -341,13 +362,36 @@ try{ var s=JSON.parse(localStorage.getItem(KEY)||"null"); if(s){
 }}catch(e){}
 update();
 
+
+/* CV upload (optional): PDF / Word, max 5 MB, sent as base64 */
+var CV_MAX=5*1024*1024, cvFile=null;
+function cvReset(){ cvFile=null; $("#cv").value=""; $("#cvBox").removeAttribute("data-has"); $("#cvName").textContent="Upload your CV"; $("#cvInfo").textContent="PDF or Word · max 5 MB"; }
+$("#cv").addEventListener("change",function(){
+  var f=this.files&&this.files[0]; $("#err").textContent="";
+  if(!f){ cvReset(); return; }
+  if(!/\.(pdf|docx?)$/i.test(f.name)){ cvReset(); $("#err").textContent="CV must be a PDF or Word file."; return; }
+  if(f.size>CV_MAX){ cvReset(); $("#err").textContent="CV is too large. Max 5 MB."; return; }
+  cvFile=f; $("#cvBox").setAttribute("data-has",""); $("#cvName").textContent=f.name;
+  $("#cvInfo").textContent=(f.size<102400?Math.max(1,Math.round(f.size/1024))+" KB":(f.size/1048576).toFixed(1)+" MB")+" · tap to change";
+});
+$("#cvX").addEventListener("click",function(e){ e.preventDefault(); e.stopPropagation(); cvReset(); });
+function readCv(){
+  if(!cvFile) return Promise.resolve(null);
+  return new Promise(function(res,rej){
+    var r=new FileReader();
+    r.onload=function(){ var u=String(r.result); res({name:cvFile.name,type:cvFile.type||"application/octet-stream",data:u.slice(u.indexOf(",")+1)}); };
+    r.onerror=function(){ rej("Couldn't read the CV file. Try another one."); };
+    r.readAsDataURL(cvFile);
+  });
+}
 function hex(buf){return Array.prototype.map.call(new Uint8Array(buf),function(b){return b.toString(16).padStart(2,"0")}).join("");}
 form.addEventListener("submit",function(e){
   e.preventDefault(); var d=data(), btn=$("#submit"); if(btn.disabled) return;
   btn.disabled=true; btn.setAttribute("data-busy",""); $("#submitTxt").textContent="Confirming"; $("#err").textContent="";
   d.at=new Date().toISOString(); d.source="links";
+  if(cvFile) $("#submitTxt").textContent="Uploading CV";
   var send = !FORM_ENDPOINT ? Promise.reject("Sign-up form is not connected yet.")
-    : fetch(FORM_ENDPOINT,{method:"POST",body:JSON.stringify(d)})
+    : readCv().then(function(cv){ var body=JSON.parse(JSON.stringify(d)); if(cv) body.cv=cv; return fetch(FORM_ENDPOINT,{method:"POST",body:JSON.stringify(body)}); })
       .then(function(r){ return r.json(); })
       .then(function(j){ if(!j || !j.ok) throw (j && j.error) || 0; });
   var hash = (window.crypto&&crypto.subtle) ? crypto.subtle.digest("SHA-256",new TextEncoder().encode(d.email+d.at)).then(hex) : Promise.resolve(Math.random().toString(16).slice(2).padEnd(64,"0"));
@@ -358,7 +402,7 @@ form.addEventListener("submit",function(e){
     $("#blkT").textContent=new Intl.DateTimeFormat("de-AT",{hour:"2-digit",minute:"2-digit",timeZone:"Europe/Vienna"}).format(new Date());
     var el=$("#blkH"), full="0x"+h, i=2; el.textContent="0x";
     join.setAttribute("data-done",""); $("#done").focus({preventScroll:true});
-    try{ localStorage.removeItem(KEY); }catch(e){}
+    try{ localStorage.removeItem(KEY); }catch(e){} cvReset();
     if(reduce){ el.textContent=full; return; }
     (function type(){ el.textContent=full.slice(0,i)+(i<full.length?"▌":""); if(i++<full.length) setTimeout(type,14); })();
   }).catch(function(msg){
