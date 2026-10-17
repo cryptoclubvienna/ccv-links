@@ -114,6 +114,7 @@ form{padding:0 16px 16px;display:grid;gap:14px}
 .cv-x{flex:none;display:none;width:30px;height:30px;border-radius:50%;border:1px solid var(--c-line-2);background:none;color:var(--c-ink-2);cursor:pointer;font-size:16px;line-height:1}
 .cv[data-has] .cv-x{display:grid;place-items:center}
 .legend em{font-style:normal;text-transform:none;letter-spacing:0;color:var(--c-ink-3)}
+.f>label em{font-style:normal;text-transform:none;letter-spacing:0;color:var(--c-ink-3)}
 .consent{display:flex;gap:10px;align-items:flex-start;font-size:.82rem;color:var(--c-ink-2);cursor:pointer}
 .consent input{margin:2px 0 0;accent-color:var(--c-accent);width:16px;height:16px;flex:none}
 .submit{height:52px;border:0;border-radius:var(--r-control);background:var(--c-accent);color:var(--c-accent-ink);font-weight:700;font-stretch:115%;letter-spacing:.01em;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:filter var(--dur) var(--ease),opacity var(--dur) var(--ease)}
@@ -176,6 +177,7 @@ footer{margin-top:auto;padding-top:var(--sp-5);display:flex;justify-content:cent
         <div class="meter" aria-hidden="true"><i id="meter"></i></div>
         <div class="f"><label for="name">Name</label><input id="name" name="name" autocomplete="name" required placeholder="First and last name"></div>
         <div class="f"><label for="email">Email</label><input id="email" name="email" type="email" inputmode="email" autocomplete="email" required placeholder="you@univie.ac.at"><span class="hint" id="emailHint"></span></div>
+        <div class="f"><label for="tg">Telegram <em>· optional</em></label><input id="tg" name="telegram" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="@username"></div>
         <div class="f"><label for="uni">University</label>
           <select id="uni" name="university" required>
             <option value="" disabled selected>Choose one</option>
@@ -344,7 +346,7 @@ $("#email").addEventListener("blur",function(){emailCheck(true)});
 /* progress meter + draft + submit gate */
 function data(){
   var fd=new FormData(form);
-  return {name:(fd.get("name")||"").trim(),email:(fd.get("email")||"").trim(),university:fd.get("university")||"",level:fd.getAll("level").join(", "),interests:fd.getAll("interests"),consent:!!fd.get("consent")};
+  return {name:(fd.get("name")||"").trim(),email:(fd.get("email")||"").trim(),telegram:(fd.get("telegram")||"").trim().replace(/^(https?:\/\/)?(www\.)?(t\.me|telegram\.me)\//i,"").replace(/^@+/,"").replace(/\s+/g,"").slice(0,64),university:fd.get("university")||"",level:fd.getAll("level").join(", "),interests:fd.getAll("interests"),consent:!!fd.get("consent")};
 }
 function update(){
   var d=data(), ok=[d.name.length>1, emailRe.test(d.email), !!d.university, !!d.level, !!cvFile, d.consent];
@@ -356,7 +358,7 @@ function update(){
 }
 form.addEventListener("input",update); form.addEventListener("change",update);
 try{ var s=JSON.parse(localStorage.getItem(KEY)||"null"); if(s){
-  $("#name").value=s.name||""; $("#email").value=s.email||""; if(s.university){$("#uni").value=s.university;uniTouched=true;}
+  $("#name").value=s.name||""; $("#email").value=s.email||""; if(s.telegram) $("#tg").value="@"+s.telegram; if(s.university){$("#uni").value=s.university;uniTouched=true;}
   if(s.level){String(s.level).split(", ").forEach(function(v){var r=form.querySelector('[name=level][value="'+v+'"]'); if(r) r.checked=true;});}
   (s.interests||[]).forEach(function(v){var c=form.querySelector('[name=interests][value="'+v+'"]'); if(c) c.checked=true;});
 }}catch(e){}
