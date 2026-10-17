@@ -182,12 +182,12 @@ footer{margin-top:auto;padding-top:var(--sp-5);display:flex;justify-content:cent
             <option>Universität Wien</option><option>TU Wien</option><option>WU Wien</option><option>BOKU</option><option>MedUni Wien</option>
             <option>FH Technikum Wien</option><option>FH Campus Wien</option><option>Other / not a student</option>
           </select></div>
-        <div class="f"><span class="legend" id="lvlL">Where you are</span>
-          <div class="chips" role="radiogroup" aria-labelledby="lvlL">
-            <label class="chip"><input type="radio" name="level" value="curious" required><span>Curious</span></label>
-            <label class="chip"><input type="radio" name="level" value="holding"><span>Holding</span></label>
-            <label class="chip"><input type="radio" name="level" value="trading"><span>Trading</span></label>
-            <label class="chip"><input type="radio" name="level" value="building"><span>Building</span></label>
+        <div class="f"><span class="legend" id="lvlL">Where you are <em>· pick one or more</em></span>
+          <div class="chips" role="group" aria-labelledby="lvlL">
+            <label class="chip"><input type="checkbox" name="level" value="curious"><span>Curious</span></label>
+            <label class="chip"><input type="checkbox" name="level" value="holding"><span>Holding</span></label>
+            <label class="chip"><input type="checkbox" name="level" value="trading"><span>Trading</span></label>
+            <label class="chip"><input type="checkbox" name="level" value="building"><span>Building</span></label>
           </div></div>
         <div class="f"><span class="legend" id="intL">Interested in</span>
           <div class="chips" role="group" aria-labelledby="intL">
@@ -344,7 +344,7 @@ $("#email").addEventListener("blur",function(){emailCheck(true)});
 /* progress meter + draft + submit gate */
 function data(){
   var fd=new FormData(form);
-  return {name:(fd.get("name")||"").trim(),email:(fd.get("email")||"").trim(),university:fd.get("university")||"",level:fd.get("level")||"",interests:fd.getAll("interests"),consent:!!fd.get("consent")};
+  return {name:(fd.get("name")||"").trim(),email:(fd.get("email")||"").trim(),university:fd.get("university")||"",level:fd.getAll("level").join(", "),interests:fd.getAll("interests"),consent:!!fd.get("consent")};
 }
 function update(){
   var d=data(), ok=[d.name.length>1, emailRe.test(d.email), !!d.university, !!d.level, !!cvFile, d.consent];
@@ -357,7 +357,7 @@ function update(){
 form.addEventListener("input",update); form.addEventListener("change",update);
 try{ var s=JSON.parse(localStorage.getItem(KEY)||"null"); if(s){
   $("#name").value=s.name||""; $("#email").value=s.email||""; if(s.university){$("#uni").value=s.university;uniTouched=true;}
-  if(s.level){var r=form.querySelector('[name=level][value="'+s.level+'"]'); if(r) r.checked=true;}
+  if(s.level){String(s.level).split(", ").forEach(function(v){var r=form.querySelector('[name=level][value="'+v+'"]'); if(r) r.checked=true;});}
   (s.interests||[]).forEach(function(v){var c=form.querySelector('[name=interests][value="'+v+'"]'); if(c) c.checked=true;});
 }}catch(e){}
 update();
